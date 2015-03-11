@@ -9,6 +9,7 @@ First attempt at a TCP interface for robot controller.
 """
 
 import socket
+import time
 
 
 class DensoSocket(object):
@@ -29,7 +30,7 @@ class DensoSocket(object):
 		
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.sock.connect((self.address, self.port))
-
+		time.sleep(4)  #wait for connection
 		self.sock.settimeout(self.timeout)
 
 	def send(self, msg):
@@ -76,7 +77,7 @@ class DensoRobot(object):
 		? Will this work ? What is zero for XYZ?
 
 		"""
-		cmd_str = "MA,%s,%s,%s" % (x, y, z)
+		cmd_str = self.command(['MA',str(x), str(y), str(z)])
 		self.sock.send(cmd_str)
 		return self.wait_for_completion()
 
@@ -84,7 +85,7 @@ class DensoRobot(object):
 		"""
 		Move position relative to current position.
 		"""
-		cmd_str = "MR,%s,%s,%s" % (x, y, z)
+		cmd_str = self.command(['MR',str(x), str(y), str(z)])
 		self.sock.send(cmd_str)
 		return self.wait_for_completion()
 
@@ -92,7 +93,7 @@ class DensoRobot(object):
 		"""
 		Move joint position relative to zero.
 		"""
-		cmd_str = "MJA,%s,%s" % (joint, magnitude)
+		cmd_str = self.command(['MJA',str(joint), str(magnitude)])
 		self.sock.send(cmd_str)
 		return self.wait_for_completion()
 
@@ -100,7 +101,7 @@ class DensoRobot(object):
 		"""
 		Move joint position relative to current position.
 		"""
-		cmd_str = "MJR,%s,%s" % (joint, magnitude)
+		cmd_str = self.command(['MJR', str(joint), str(magnitude)])
 		self.sock.send(cmd_str)
 		return self.wait_for_completion()
 
@@ -111,16 +112,15 @@ class DensoRobot(object):
 		for example 'P50'
 
 		"""
-		cmd_str = "MP,%s" % point
+		cmd_str = self.command(["MP", str(point)])
 		self.sock.send(cmd_str)
 		return self.wait_for_completion()
-
 
 	def set_speed(self, speed):
 		"""
 		Set speed.
 		"""
-		cmd_str = "SS,%s" % speed
+		cmd_str = self.command(["SS", str(speed)])
 		self.sock.send(cmd_str)
 		return self.wait_for_completion()
 
@@ -128,7 +128,7 @@ class DensoRobot(object):
 		"""
 		Get speed.
 		"""
-		cmd_str = "GS"
+		cmd_str = self.command(["GS"])
 		self.sock.send(cmd_str)
 		response = self.sock.receive()
 		return response
@@ -137,7 +137,7 @@ class DensoRobot(object):
 		"""
 		Get position.
 		"""
-		cmd_str = "GP"
+		cmd_str = self.command(["GP"])
 		self.sock.send(cmd_str)
 		response = self.sock.receive()
 		return response
@@ -146,7 +146,7 @@ class DensoRobot(object):
 		"""
 		Get joint position.
 		"""
-		cmd_str = "GJP"
+		cmd_str = self.command(['GPJ'])
 		self.sock.send(cmd_str)
 		response = self.sock.receive()
 		return response
@@ -168,8 +168,16 @@ class DensoRobot(object):
 		else:
 			return 1
 
+	def command(self, cmd_list):
+		"""
+		Creates a CR delimited command string.
+		"""
+		length = len(cmd_list)
+		pad = "0\r"*(4-length)
+		cmd = "\r".join(cmd_list) + "\r" + pad
+		return cmd
+
 if __name__ == '__main__':
-	dr = DensoRobot(ip='localhost', port=5005)
-	dr.movej_relative(1,5)
+	dr = DensoRobot(ip='192.168.1.10', port=5001)
 	dr.move_absolute(4,5,6)
 	dr.close()
