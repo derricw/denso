@@ -69,17 +69,6 @@ class DensoRobot(object):
 		Socket setup.
 		"""
 		self.sock = DensoSocket(self.ip, self.port)
-		
-	def move_absolute(self, x, y, z):
-		"""
-		Move position relative to zero.
-
-		? Will this work ? What is zero for XYZ?
-
-		"""
-		cmd_str = self.command(['MA',str(x), str(y), str(z)])
-		self.sock.send(cmd_str)
-		return self.wait_for_completion()
 
 	def move_relative(self, x, y, z):
 		"""
@@ -149,7 +138,7 @@ class DensoRobot(object):
 		cmd_str = self.command(['GPJ'])
 		self.sock.send(cmd_str)
 		response = self.sock.receive()
-		return response
+		return [float(x) for x in response.split(" ")]
 
 	def close(self):
 		"""
@@ -166,6 +155,7 @@ class DensoRobot(object):
 		if "DONE" in data:
 			return 0
 		else:
+			print(data)
 			return 1
 
 	def command(self, cmd_list):
@@ -173,11 +163,14 @@ class DensoRobot(object):
 		Creates a CR delimited command string.
 		"""
 		length = len(cmd_list)
-		pad = "0\r"*(4-length)
+		pad = "0\r"*(7-length)
 		cmd = "\r".join(cmd_list) + "\r" + pad
 		return cmd
 
 if __name__ == '__main__':
 	dr = DensoRobot(ip='192.168.1.10', port=5001)
-	dr.move_absolute(4,5,6)
+	#dr.move_relative(0,-40,0)
+	#dr.movej_absolute(6, 20.0)
+	#print dr.get_jpos()
+	#dr.move_relative(0,40,0)
 	dr.close()
